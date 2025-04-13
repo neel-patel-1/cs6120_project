@@ -1,3 +1,6 @@
 [submodule "egg/egg"]
 	path = egg/egg
 	url = https://github.com/egraphs-good/egg.git
+[submodule "egg/ilp/good_lp"]
+	path = egg/ilp/good_lp
+	url = https://github.com/rust-or/good_lp.git
