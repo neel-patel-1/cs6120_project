@@ -6,7 +6,6 @@ fn main() {
         enum SimpleLang {
             "+" = Add([Id; 2]),
             "a" = A,
-            "b" = B,
         }
     }
 
@@ -15,13 +14,12 @@ fn main() {
 
     // Add initial expressions
     let a = egraph.add(SimpleLang::A);
-    let b = egraph.add(SimpleLang::B);
-    let add_ab = egraph.add(SimpleLang::Add([a, b]));
+    let add_a_a = egraph.add(SimpleLang::Add([a, a]));
 
-    // Define rewrites that create a loop
+    // Define rewrites that create a loop from child to parent
     let rules: &[Rewrite<SimpleLang, ()>] = &[
-        rw!("add-commute"; "(+ ?x ?y)" => "(+ ?y ?x)"),
-        rw!("add-self"; "(+ ?x ?x)" => "?x"),
+        rw!("add-to-self"; "(+ ?x ?x)" => "?x"),
+        rw!("self-to-add"; "?x" => "(+ ?x ?x)"),
     ];
 
     // Run the rewrites
