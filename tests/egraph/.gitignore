@@ -1,0 +1,5 @@
+Cargo.lock
+egraph.dot
+egraph.pdf
+target/
+
