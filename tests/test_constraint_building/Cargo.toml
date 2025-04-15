@@ -1,0 +1,8 @@
+[package]
+name = "egraph"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+egg = { git = "https://github.com/neel-patel-1/egg" }
+good_lp = { git = "https://github.com/rust-or/good_lp" }
