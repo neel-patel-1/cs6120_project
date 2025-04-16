@@ -33,6 +33,7 @@ fn get_egraph() -> EGraph<SimpleLang, ()> {
 pub struct EGraphProblem {
     num_classes: usize,
     vars: ProblemVariables,
+    num_constraints: usize,
 }
 
 impl EGraphProblem {
@@ -44,11 +45,16 @@ impl EGraphProblem {
         Self {
             num_classes: egraph.classes().len(),
             vars: variables!(),
+            num_constraints: 0,
         }
     }
 
     pub fn get_num_classes(&self) -> usize {
         self.num_classes
+    }
+
+    pub fn get_num_constraints(&self) -> usize {
+        self.num_constraints
     }
 }
 
