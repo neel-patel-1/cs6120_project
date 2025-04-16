@@ -88,4 +88,5 @@ fn main() {
     let runner: Runner<SimpleLang, ()> = Runner::default().with_expr(&expr).run(rules);
 
     let glpe = GoodLpExtractor::new(&runner.egraph);
+    glpe.solve();
 }
