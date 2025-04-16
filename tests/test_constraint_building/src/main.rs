@@ -28,10 +28,19 @@ where
 
     pub fn new(egraph: &'a EGraph<L, N>) -> Self
     {
+        let mut vars = variables!();
+        let mut total_cost = 0.into();
+
+        for class in egraph.classes() {
+            for node in &class.nodes {
+                let node_var = vars.add(variable().binary());
+                total_cost += node_var;
+            }
+        }
         Self {
-            vars: variables!(),
-            egraph: egraph,
-            total_cost: 0.into(),
+            vars,
+            egraph,
+            total_cost,
         }
     }
 
