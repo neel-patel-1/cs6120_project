@@ -31,6 +31,7 @@ where
         let mut vars = variables!();
         let mut total_cost = 0.into();
 
+        /* TODO: use LP cost function to create the objective */
         for class in egraph.classes() {
             for node in &class.nodes {
                 let node_var = vars.add(variable().binary());
@@ -44,7 +45,7 @@ where
         }
     }
 
-    fn solve(self) -> Box<dyn Solution> {
+    fn solve(self, eclass: Id) -> Box<dyn Solution> {
         let objective = self.total_cost;
         println!("Objective: {:?}", objective);
         let solution = self.vars
@@ -88,5 +89,5 @@ fn main() {
     let runner: Runner<SimpleLang, ()> = Runner::default().with_expr(&expr).run(rules);
 
     let glpe = GoodLpExtractor::new(&runner.egraph);
-    glpe.solve();
+    glpe.solve(runner.roots[0]);
 }
