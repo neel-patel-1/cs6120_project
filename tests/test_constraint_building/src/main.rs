@@ -3,12 +3,14 @@ use good_lp::variable::ProblemVariables;
 use good_lp::{
     variables,
     variable,
+    Variable,
     Constraint,
     default_solver,
     Solution,
     SolverModel,
     Expression
 };
+use std::collections::HashMap;
 
 
 
@@ -16,6 +18,7 @@ use good_lp::{
 pub struct GoodLpExtractor<'a, L:Language, N:Analysis<L>> {
     egraph: &'a EGraph<L, N>,
     cost_function: Box<dyn LpCostFunction<L, N>>,
+    enode_vars: HashMap<(Id, usize), Variable>,
 }
 
 
@@ -29,7 +32,8 @@ where
     {
         Self {
             egraph,
-            cost_function
+            cost_function,
+            enode_vars: HashMap::new(),
         }
     }
 
@@ -40,14 +44,38 @@ where
 
         /* pass over e-graph creating binary variables constraints */
         for class in self.egraph.classes() {
-            for node in &class.nodes {
-                let node_var = vars.add(variable().binary());
+            for (node_index, _node) in class.nodes.iter().enumerate() {
+                println!("Class id: {}, node index: {}", class.id, node_index);
+                let node_var = if let Some(var) = self.enode_vars.get(&(class.id, node_index)) {
+                    var.clone()
+                } else {
+                    let var = vars.add(variable().binary());
+                    self.enode_vars.insert((class.id, node_index), var.clone());
+                    var
+                };
 
-                let cost = self.cost_function.node_cost(self.egraph, class.id, node);
+                let cost = self.cost_function.node_cost(self.egraph, class.id, _node);
 
                 total_cost += cost * node_var;
             }
         }
+
+        /* add constraint: sum of node_vars for the root e-class must be 1 */
+        let root_class_id = self.egraph.find(eclass);
+        println!("Root class: {:?}", root_class_id);
+        let root_class = &self.egraph[root_class_id];
+        let root_vars = root_class
+            .nodes
+            .iter()
+            .enumerate()
+            .map(|(node_index, _)| self.enode_vars[&(root_class_id, node_index)].clone())
+            .collect::<Vec<_>>();
+
+        constraints.push(root_vars.iter().cloned().sum::<Expression>().eq(1));
+
+        println!("Root vars: {:?}", root_vars);
+
+
 
         /* solve */
         let solution = vars
