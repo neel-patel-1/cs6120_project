@@ -4,63 +4,54 @@ use good_lp::{
     variables
 };
 
+
+
+pub struct GoodLpExtractor<'a, L:Language, N:Analysis<L>> {
+    egraph: &'a EGraph<L, N>,
+    vars: ProblemVariables,
+}
+
+
+impl <'a, L, N> GoodLpExtractor<'a, L, N>
+where
+    L: Language,
+    N: Analysis<L>,
+{
+
+    pub fn new(egraph: &'a EGraph<L, N>) -> Self
+    {
+        Self {
+            vars: variables!(),
+            egraph: egraph
+        }
+    }
+
+    fn add_root_eclass_selection_constraint(){
+
+    }
+
+}
+
 define_language! {
     enum SimpleLang {
         "+" = Add([Id; 2]),
         "*" = Mul([Id; 2]),
-        "a" = A,
-        "b" = B,
-    }
-}
-
-fn get_egraph() -> EGraph<SimpleLang, ()> {
-    // Define the language
-
-    // Create an empty e-graph
-    let mut egraph: EGraph<SimpleLang, ()> = EGraph::default();
-
-    // Add initial expressions
-    let a = egraph.add(SimpleLang::A);
-    let b = egraph.add(SimpleLang::B);
-    let add_a_b = egraph.add(SimpleLang::Add([a, b]));
-    let add_b_a = egraph.add(SimpleLang::Add([b, a]));
-    let mul_add_a_b_add_b_a = egraph.add(SimpleLang::Mul([add_a_b, add_b_a]));
-    egraph.add(SimpleLang::Add([mul_add_a_b_add_b_a, mul_add_a_b_add_b_a]));
-
-    return egraph;
-}
-
-pub struct EGraphProblem {
-    num_classes: usize,
-    vars: ProblemVariables,
-    num_constraints: usize,
-}
-
-impl EGraphProblem {
-    pub fn new<L, N>(egraph : &EGraph<L, N>) -> Self
-    where
-        L: Language,
-        N: Analysis<L>,
-    {
-        Self {
-            num_classes: egraph.classes().len(),
-            vars: variables!(),
-            num_constraints: 0,
-        }
-    }
-
-    pub fn get_num_classes(&self) -> usize {
-        self.num_classes
-    }
-
-    pub fn get_num_constraints(&self) -> usize {
-        self.num_constraints
+        Num(i32),
+        Symbol(Symbol),
     }
 }
 
 fn main() {
-    let egraph = get_egraph();
-    let egraph_prob = EGraphProblem::new(&egraph);
-    let num_classes = egraph_prob.get_num_classes();
-    println!("Number of classes in the e-graph: {}", num_classes);
+    let expr: RecExpr<SimpleLang> = "(+ (* a b) (* b a))".parse().unwrap();
+
+    let rules = &[
+        rewrite!("commute-add"; "(+ ?a ?b)" => "(+ ?b ?a)"),
+        rewrite!("commute-mul"; "(* ?a ?b)" => "(* ?b ?a)"),
+        rewrite!("add-0"; "(+ ?a 0)" => "?a"),
+        rewrite!("mul-0"; "(* ?a 0)" => "0"),
+        rewrite!("mul-1"; "(* ?a 1)" => "?a"),
+    ];
+    let runner: Runner<SimpleLang, ()> = Runner::default().with_expr(&expr).run(rules);
+
+    let glpe = GoodLpExtractor::new(&runner.egraph);
 }
