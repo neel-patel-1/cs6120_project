@@ -2,14 +2,21 @@ use egg::{*};
 use good_lp::variable::ProblemVariables;
 use good_lp::{
     variables,
-    Constraint
+    variable,
+    Constraint,
+    default_solver,
+    Solution,
+    SolverModel,
+    Expression
 };
+
 
 
 
 pub struct GoodLpExtractor<'a, L:Language, N:Analysis<L>> {
     egraph: &'a EGraph<L, N>,
     vars: ProblemVariables,
+    total_cost: Expression,
 }
 
 
@@ -23,17 +30,29 @@ where
     {
         Self {
             vars: variables!(),
-            egraph: egraph
+            egraph: egraph,
+            total_cost: 0.into(),
         }
-
     }
 
-    fn add_root_eclass_selection_constraint(&self, eclass: Id){
-        println!("Adding root eclass selection constraint for eclass: {:?}", eclass);
+    fn solve(self) -> Box<dyn Solution> {
+        let objective = self.total_cost;
+        println!("Objective: {:?}", objective);
+        let solution = self.vars
+            .minimise(objective)
+            .using(default_solver)
+            .with_all(Self::constraints())
+            .solve()
+            .unwrap();
+
+        Box::new(solution)
     }
 
-    fn constraints(&self) -> Vec<Constraint> {
-        vec![]
+    fn constraints() -> Vec<Constraint> {
+        let mut constraints = Vec::with_capacity(2);
+
+        constraints
+
     }
 
 }
@@ -60,6 +79,4 @@ fn main() {
     let runner: Runner<SimpleLang, ()> = Runner::default().with_expr(&expr).run(rules);
 
     let glpe = GoodLpExtractor::new(&runner.egraph);
-    let root = runner.roots[0];
-    glpe.add_root_eclass_selection_constraint(root);
 }
