@@ -1,4 +1,8 @@
 use egg::{*};
+use good_lp::variable::ProblemVariables;
+use good_lp::{
+    variables
+};
 
 define_language! {
     enum SimpleLang {
@@ -28,6 +32,7 @@ fn get_egraph() -> EGraph<SimpleLang, ()> {
 
 pub struct EGraphProblem {
     num_classes: usize,
+    vars: ProblemVariables,
 }
 
 impl EGraphProblem {
@@ -38,6 +43,7 @@ impl EGraphProblem {
     {
         Self {
             num_classes: egraph.classes().len(),
+            vars: variables!(),
         }
     }
 
