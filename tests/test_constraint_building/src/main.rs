@@ -1,7 +1,8 @@
 use egg::{*};
 use good_lp::variable::ProblemVariables;
 use good_lp::{
-    variables
+    variables,
+    Constraint
 };
 
 
@@ -27,8 +28,12 @@ where
 
     }
 
-    pub fn add_root_eclass_selection_constraint(&self, eclass: Id){
+    fn add_root_eclass_selection_constraint(&self, eclass: Id){
         println!("Adding root eclass selection constraint for eclass: {:?}", eclass);
+    }
+
+    fn constraints(&self) -> Vec<Constraint> {
+        vec![]
     }
 
 }
