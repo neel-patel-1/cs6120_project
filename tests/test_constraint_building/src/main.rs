@@ -23,10 +23,32 @@ fn get_egraph() -> EGraph<SimpleLang, ()> {
     let mul_add_a_b_add_b_a = egraph.add(SimpleLang::Mul([add_a_b, add_b_a]));
     egraph.add(SimpleLang::Add([mul_add_a_b_add_b_a, mul_add_a_b_add_b_a]));
 
-
     return egraph;
+}
+
+pub struct EGraphProblem {
+    num_classes: usize,
+}
+
+impl EGraphProblem {
+    pub fn new<L, N>(egraph : &EGraph<L, N>) -> Self
+    where
+        L: Language,
+        N: Analysis<L>,
+    {
+        Self {
+            num_classes: egraph.classes().len(),
+        }
+    }
+
+    pub fn get_num_classes(&self) -> usize {
+        self.num_classes
+    }
 }
 
 fn main() {
     let egraph = get_egraph();
+    let egraph_prob = EGraphProblem::new(&egraph);
+    let num_classes = egraph_prob.get_num_classes();
+    println!("Number of classes in the e-graph: {}", num_classes);
 }
