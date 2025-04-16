@@ -24,10 +24,11 @@ where
             vars: variables!(),
             egraph: egraph
         }
+
     }
 
-    fn add_root_eclass_selection_constraint(){
-
+    pub fn add_root_eclass_selection_constraint(&self, eclass: Id){
+        println!("Adding root eclass selection constraint for eclass: {:?}", eclass);
     }
 
 }
@@ -54,4 +55,6 @@ fn main() {
     let runner: Runner<SimpleLang, ()> = Runner::default().with_expr(&expr).run(rules);
 
     let glpe = GoodLpExtractor::new(&runner.egraph);
+    let root = runner.roots[0];
+    glpe.add_root_eclass_selection_constraint(root);
 }
