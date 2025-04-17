@@ -253,4 +253,45 @@ mod tests {
             "A cyclic `split` node was selected ⇒ acyclicity constraint failed.\nExtracted expr: {s}"
         );
     }
+
+    #[cfg(feature = "no_acyclic")]
+    #[test]
+    #[should_panic(expected = "has overflowed its stack")]
+    fn acyclicity_constraint_blocks_cyclic_split_no_acyclic() {
+        let rewrites = &[
+            rewrite!(
+                "wrap-split";
+                "(matmul ?x ?y)" => "(split (matmul ?x ?y))"
+            ),
+        ];
+        let expr: RecExpr<CycLang> = "(matmul a b)".parse().unwrap();
+        let runner: Runner<CycLang, ()> =
+            Runner::default().with_expr(&expr).run(rewrites);
+        let extractor = GoodLpExtractor::new(&runner.egraph, Box::new(PreferSplit));
+        extractor.solve(runner.roots[0]);
+    }
+
 }
+
+
+#[test]
+fn test_expected_cost()
+{
+    let expr: RecExpr<SimpleLang> = "(+ (* a b) (* b a))".parse().unwrap();
+
+    let rules = &[
+        rewrite!("commute-add"; "(+ ?a ?b)" => "(+ ?b ?a)"),
+        rewrite!("commute-mul"; "(* ?a ?b)" => "(* ?b ?a)"),
+        rewrite!("add-0"; "(+ ?a 0)" => "?a"),
+        rewrite!("mul-0"; "(* ?a 0)" => "0"),
+        rewrite!("mul-1"; "(* ?a 1)" => "?a"),
+    ];
+    let runner: Runner<SimpleLang, ()> = Runner::default().with_expr(&expr).run(rules);
+
+    let glpe = GoodLpExtractor::new(&runner.egraph, Box::new(AstSize));
+    let (best_cost, best_expr)
+        = glpe.solve(runner.roots[0]);
+
+    println!("Best cost:{} Best expr: {:?}", best_cost, best_expr);
+}
+
