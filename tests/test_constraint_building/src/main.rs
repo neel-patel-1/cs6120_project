@@ -42,29 +42,28 @@ where
         let mut constraints = Vec::new();
         let mut total_cost: Expression = 0.into();
 
+        /* t_m */
+        let mut topo_vars: HashMap<Id, Variable> = HashMap::new();
+        for class in self.egraph.classes() {
+            let t_m = vars.add(variable().min(0.0).max(1.0));
+            topo_vars.insert(class.id, t_m);
+        }
+        const EPSILON: f64 = 1e-3;
+        const A: f64 = 2.0;
+
         /* pass over e-graph creating binary variables constraints */
         for class in self.egraph.classes() {
-
-            /* create a variable for the e-class acyclicity */
+            let t_parent = topo_vars[&class.id].clone();
 
             for (node_index, _node) in class.nodes.iter().enumerate() {
-                let node_var = if let Some(var) = self.enode_vars.get(&(class.id, node_index)) {
-                    var.clone()
-                } else {
-                    let var = vars.add(variable().binary());
-                    self.enode_vars.insert((class.id, node_index), var.clone());
-                    var
-                };
+                let node_var = *self
+                    .enode_vars
+                    .entry((class.id, node_index))
+                    .or_insert_with(|| vars.add(variable().binary()));
 
                 /* for each child e-class, enforce (c3) that at least one of its e-nodes is selected if this e-node gets selected and (c4) that its e-class acyclicity variable is greater than the threshold if it is selected */
                 for child in class.nodes[node_index].children() {
                     let child_class = self.egraph.find(*child);
-                    let child_class_vars = self.enode_vars
-                        .iter()
-                        .filter(|&((id, _), _)| *id == child_class)
-                        .map(|(_, var)| var.clone())
-                        .collect::<Vec<_>>();
-
                     let mut child_vars = Vec::new();
 
                     /* ensure every enode in the child e‑class has a variable */
