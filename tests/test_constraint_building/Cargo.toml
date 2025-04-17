@@ -7,3 +7,6 @@ edition = "2024"
 egg = {path = "../../egg", features=["lp"]}
 good_lp = { git = "https://github.com/rust-or/good_lp" }
 smallvec = "1.13"
+
+[features]
+no_acyclic = []   # opt‑out switch

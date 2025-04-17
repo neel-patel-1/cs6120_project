@@ -78,11 +78,14 @@ where
                     let child_sum: Expression = child_vars.iter().cloned().sum();
                     constraints.push(Into::<Expression>::into(node_var.clone()).leq(child_sum));
 
-                    let node_expr: Expression = node_var.clone().into();
-                    let t_child = topo_vars[&child_class].clone();
-                    let big_m_part: Expression = (Into::<Expression>::into(1.0) - node_expr.clone()) * ALPHA;
-                    let acyc_expr: Expression = t_parent.clone() - t_child - (Into::<Expression>::into(EPS)) + big_m_part;
-                    constraints.push(Into::<Expression>::into(acyc_expr).geq(Into::<Expression>::into(0)));
+                    #[cfg(not(feature = "no_acyclic"))]
+                    {
+                        let node_expr: Expression = node_var.clone().into();
+                        let t_child = topo_vars[&child_class].clone();
+                        let big_m_part: Expression = (Into::<Expression>::into(1.0) - node_expr.clone()) * ALPHA;
+                        let acyc_expr: Expression = t_parent.clone() - t_child - (Into::<Expression>::into(EPS)) + big_m_part;
+                        constraints.push(Into::<Expression>::into(acyc_expr).geq(Into::<Expression>::into(0)));
+                    }
 
 
                 }
@@ -201,4 +204,53 @@ fn main() {
         = glpe.solve(runner.roots[0]);
 
     println!("Best cost:{} Best expr: {:?}", best_cost, best_expr);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use egg::{define_language, rewrite, RecExpr, Runner};
+
+    define_language! {
+        enum CycLang {
+            "matmul" = MatMul([Id; 2]),
+            "split"  = Split ([Id; 1]),
+            Symbol(Symbol),
+        }
+    }
+
+    struct PreferSplit;
+    impl LpCostFunction<CycLang, ()> for PreferSplit {
+        fn node_cost(
+            &mut self,
+            _egraph: &EGraph<CycLang, ()>,
+            _id: Id,
+            node: &CycLang,
+        ) -> f64 {
+            match node {
+                CycLang::Split(_) => 1.0,   // cheapest ⇒ ILP wants it
+                _                 => 100.0, // expensive
+            }
+        }
+    }
+
+    #[test]
+    fn acyclicity_constraint_blocks_cyclic_split() {
+        let rewrites = &[
+            rewrite!(
+                "wrap-split";
+                "(matmul ?x ?y)" => "(split (matmul ?x ?y))"
+            ),
+        ];
+        let expr: RecExpr<CycLang> = "(matmul a b)".parse().unwrap();
+        let runner: Runner<CycLang, ()> =
+            Runner::default().with_expr(&expr).run(rewrites);
+        let extractor = GoodLpExtractor::new(&runner.egraph, Box::new(PreferSplit));
+        let (_cost, best_expr) = extractor.solve(runner.roots[0]);
+        let s = best_expr.to_string();
+        assert!(
+            !s.contains("split"),
+            "A cyclic `split` node was selected ⇒ acyclicity constraint failed.\nExtracted expr: {s}"
+        );
+    }
 }
