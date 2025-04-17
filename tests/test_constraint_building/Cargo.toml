@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-# egg = { git = "https://github.com/neel-patel-1/egg" }
 egg = {path = "../../egg", features=["lp"]}
 good_lp = { git = "https://github.com/rust-or/good_lp" }
+smallvec = "1.13"

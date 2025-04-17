@@ -1,16 +1,15 @@
 use egg::{*};
-use good_lp::variable::ProblemVariables;
 use good_lp::{
     variables,
     variable,
     Variable,
-    Constraint,
     default_solver,
     Solution,
     SolverModel,
     Expression
 };
 use std::collections::HashMap;
+use smallvec::SmallVec;
 
 
 
@@ -28,7 +27,7 @@ where
     N: Analysis<L>,
 {
 
-    pub fn new(egraph: &'a EGraph<L, N>, mut cost_function: Box<dyn LpCostFunction<L, N>>) -> Self
+    pub fn new(egraph: &'a EGraph<L, N>, cost_function: Box<dyn LpCostFunction<L, N>>) -> Self
     {
         Self {
             egraph,
@@ -37,7 +36,7 @@ where
         }
     }
 
-    fn solve(mut self, eclass: Id) -> Box<dyn Solution> {
+    fn solve(mut self, eclass: Id) -> (f64, RecExpr<L>) {
         let mut vars = variables!();
         let mut constraints = Vec::new();
         let mut total_cost: Expression = 0.into();
@@ -113,13 +112,64 @@ where
 
         /* solve */
         let solution = vars
-            .minimise(total_cost)
+            .minimise(&total_cost)
             .using(default_solver)
             .with_all(constraints)
             .solve()
             .unwrap();
 
-        Box::new(solution)
+        let obj_cost = solution.eval(&total_cost);
+
+        let mut cache  = HashMap::<Id, egg::Id>::new();
+        let mut rexpr  = RecExpr::<L>::default();
+
+        // depth‑first reconstruction
+        fn build<L: Language, N: Analysis<L>>(
+            egraph   : &EGraph<L, N>,
+            enode_vs : &HashMap<(Id, usize), Variable>,
+            sol      : &dyn Solution,
+            class_id : Id,
+            cache    : &mut HashMap<Id, egg::Id>,
+            out_expr : &mut RecExpr<L>,
+        ) -> egg::Id {
+            if let Some(&id) = cache.get(&class_id) {
+                return id;
+            }
+            // find the enode whose var == 1
+            let class = &egraph[class_id];
+            let (_, node) = class.nodes.iter().enumerate()
+                .find(|(i, _)| sol.value(enode_vs[&(class_id, *i)]) > 0.5)
+                .expect("no chosen node for e‑class");
+
+            // recursively build children
+            let new_children: SmallVec<[egg::Id; 4]> = node
+                .children()
+                .iter()
+                .map(|c| build(egraph, enode_vs, sol, egraph.find(*c), cache, out_expr))
+                .collect();
+
+            // add new node with mapped children
+            let mut idx = 0usize;
+            let mapped = node.clone().map_children(|_| {
+                let id = new_children[idx];
+                idx += 1;
+                id
+            });
+            let new_id = out_expr.add(mapped);
+            cache.insert(class_id, new_id);
+            new_id
+        }
+
+        build(
+            self.egraph,
+            &self.enode_vars,
+            &solution,
+            root_class_id,
+            &mut cache,
+            &mut rexpr,
+        );
+
+        (obj_cost, rexpr)
     }
 
 
@@ -147,5 +197,8 @@ fn main() {
     let runner: Runner<SimpleLang, ()> = Runner::default().with_expr(&expr).run(rules);
 
     let glpe = GoodLpExtractor::new(&runner.egraph, Box::new(AstSize));
-    glpe.solve(runner.roots[0]);
+    let (best_cost, best_expr)
+        = glpe.solve(runner.roots[0]);
+
+    println!("Best cost:{} Best expr: {:?}", best_cost, best_expr);
 }
