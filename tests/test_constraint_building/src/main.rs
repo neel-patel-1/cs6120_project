@@ -45,7 +45,6 @@ where
         /* pass over e-graph creating binary variables constraints */
         for class in self.egraph.classes() {
             for (node_index, _node) in class.nodes.iter().enumerate() {
-                println!("Class id: {}, node index: {}", class.id, node_index);
                 let node_var = if let Some(var) = self.enode_vars.get(&(class.id, node_index)) {
                     var.clone()
                 } else {
@@ -53,6 +52,36 @@ where
                     self.enode_vars.insert((class.id, node_index), var.clone());
                     var
                 };
+
+                /* for each child e-class, enforce that at least one of its e-nodes is selected if this e-node gets selected  */
+                for child in class.nodes[node_index].children() {
+                    let child_class = self.egraph.find(*child);
+                    let child_class_vars = self.enode_vars
+                        .iter()
+                        .filter(|&((id, _), _)| *id == child_class)
+                        .map(|(_, var)| var.clone())
+                        .collect::<Vec<_>>();
+
+                    println!("Child class: {:?}", child_class);
+                    /* TODO: add a constraint for the child class */
+                    let mut child_vars = Vec::new();
+
+                    /* ensure every enode in the child e‑class has a variable */
+                    for (c_idx, _c_node) in self.egraph[child_class].nodes.iter().enumerate() {
+                        let var = self
+                            .enode_vars
+                            .entry((child_class, c_idx))
+                            .or_insert_with(|| vars.add(variable().binary()))
+                            .clone();
+                        child_vars.push(var);
+                    }
+
+                    /* node_var ≤ Σ child_vars  */
+                    let child_sum: Expression = child_vars.iter().cloned().sum();
+                    constraints.push(Into::<Expression>::into(node_var.clone()).leq(child_sum));
+
+
+                }
 
                 let cost = self.cost_function.node_cost(self.egraph, class.id, _node);
 
