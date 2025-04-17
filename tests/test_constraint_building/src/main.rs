@@ -48,8 +48,8 @@ where
             let t_m = vars.add(variable().min(0.0).max(1.0));
             topo_vars.insert(class.id, t_m);
         }
-        const EPSILON: f64 = 1e-3;
-        const A: f64 = 2.0;
+        const EPS: f64 = 1e-3;
+        const ALPHA: f64 = 2.0;
 
         /* pass over e-graph creating binary variables constraints */
         for class in self.egraph.classes() {
@@ -61,7 +61,6 @@ where
                     .entry((class.id, node_index))
                     .or_insert_with(|| vars.add(variable().binary()));
 
-                /* for each child e-class, enforce (c3) that at least one of its e-nodes is selected if this e-node gets selected and (c4) that its e-class acyclicity variable is greater than the threshold if it is selected */
                 for child in class.nodes[node_index].children() {
                     let child_class = self.egraph.find(*child);
                     let mut child_vars = Vec::new();
@@ -79,6 +78,12 @@ where
                     /* node_var ≤ Σ child_vars  */
                     let child_sum: Expression = child_vars.iter().cloned().sum();
                     constraints.push(Into::<Expression>::into(node_var.clone()).leq(child_sum));
+
+                    let node_expr: Expression = node_var.clone().into();
+                    let t_child = topo_vars[&child_class].clone();
+                    let big_m_part: Expression = (Into::<Expression>::into(1.0) - node_expr.clone()) * ALPHA;
+                    let acyc_expr: Expression = t_parent.clone() - t_child - (Into::<Expression>::into(EPS)) + big_m_part;
+                    constraints.push(Into::<Expression>::into(acyc_expr).geq(Into::<Expression>::into(0)));
 
 
                 }
