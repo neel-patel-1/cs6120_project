@@ -44,6 +44,9 @@ where
 
         /* pass over e-graph creating binary variables constraints */
         for class in self.egraph.classes() {
+
+            /* create a variable for the e-class acyclicity */
+
             for (node_index, _node) in class.nodes.iter().enumerate() {
                 let node_var = if let Some(var) = self.enode_vars.get(&(class.id, node_index)) {
                     var.clone()
@@ -53,7 +56,7 @@ where
                     var
                 };
 
-                /* for each child e-class, enforce that at least one of its e-nodes is selected if this e-node gets selected  */
+                /* for each child e-class, enforce (c3) that at least one of its e-nodes is selected if this e-node gets selected and (c4) that its e-class acyclicity variable is greater than the threshold if it is selected */
                 for child in class.nodes[node_index].children() {
                     let child_class = self.egraph.find(*child);
                     let child_class_vars = self.enode_vars
@@ -62,8 +65,6 @@ where
                         .map(|(_, var)| var.clone())
                         .collect::<Vec<_>>();
 
-                    println!("Child class: {:?}", child_class);
-                    /* TODO: add a constraint for the child class */
                     let mut child_vars = Vec::new();
 
                     /* ensure every enode in the child e‑class has a variable */
@@ -91,7 +92,7 @@ where
 
         /* add constraint: sum of node_vars for the root e-class must be 1 */
         let root_class_id = self.egraph.find(eclass);
-        println!("Root class: {:?}", root_class_id);
+        println!("Num Classes: {} Root Class: {}", self.egraph.classes().len(), root_class_id);
         let root_class = &self.egraph[root_class_id];
         let root_vars = root_class
             .nodes
