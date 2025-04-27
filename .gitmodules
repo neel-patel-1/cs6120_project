@@ -4,3 +4,9 @@
 [submodule "lut-synth"]
 	path = lut-synth
 	url = git@github.com:matth2k/lut-synth.git
+[submodule "extraction-gym"]
+	path = extraction-gym
+	url = https://github.com/egraphs-good/extraction-gym.git
+[submodule "good_lp"]
+	path = good_lp
+	url = https://github.com/rust-or/good_lp.git
