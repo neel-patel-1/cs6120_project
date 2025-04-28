@@ -10,3 +10,6 @@
 [submodule "good_lp"]
 	path = good_lp
 	url = https://github.com/rust-or/good_lp.git
+[submodule]
+	egg = git@github.com:neel-patel-1/egg.git
+	extraction-gym = git@github.com:neel-patel-1/extraction-gym.git
