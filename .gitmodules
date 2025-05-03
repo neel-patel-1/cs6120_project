@@ -13,3 +13,9 @@
 [submodule]
 	egg = git@github.com:neel-patel-1/egg.git
 	extraction-gym = git@github.com:neel-patel-1/extraction-gym.git
+[submodule "smoothe-artifact"]
+	path = smoothe-artifact
+	url = https://github.com/yaohuicai/smoothe-artifact.git
+[submodule "cs6120"]
+	path = cs6120
+	url = git@github.com:neel-patel-1/cs6120.git
