@@ -19,3 +19,6 @@
 [submodule "cs6120"]
 	path = cs6120
 	url = git@github.com:neel-patel-1/cs6120.git
+[submodule "egraph-serialize"]
+	path = egraph-serialize
+	url = https://github.com/egraphs-good/egraph-serialize.git
